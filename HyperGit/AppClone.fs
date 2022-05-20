@@ -31,13 +31,18 @@ let run args =
     CfgFile = "repos.csv"
   }
   let hgc = new HyperGitConfig(o.CfgFile)
+  let mutable ignored = 0
+  let mutable existing = 0
+  let mutable missing = 0
   for e in hgc.Entries do
     if e.IsEnabled then
       let repopath = e.RepoPath
       if repopath |> Directory.Exists then
+        existing <- existing + 1
         if verbose then
           cp $"\fk{e.Name}\f0 (exists)"
       else
+        missing <- missing + 1
         cp $"\fg{e.Name}\f0:"
         if e.BucketPath |> Directory.Exists |> not then
           cp $"  Creating \fy{e.BucketPath}\f0"
@@ -50,7 +55,10 @@ let run args =
         else
           cp $"  \fwgit -C {bucket} clone --mirror --no-hardlinks {e.Origin}\f0"
     else
+      ignored <- ignored + 1
       if verbose then
         cp $"\fk%35s{e.Name}  (inactive)"
+  let total = existing + missing
+  cp $"Of \fc{total}\f0 total active repositories, \fg{missing}\f0 are missing, and \fy{existing}\f0 already exist"
   0
 
